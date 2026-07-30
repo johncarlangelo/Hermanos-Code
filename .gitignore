@@ -6,3 +6,46 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Ignore node_modules
+node_modules/
+
+# Ignore build outputs
+build/
+dist/
+
+# Ignore development artifacts
+.vite/
+
+# Ignore Git metadata
+.git/
+.gitignore
+.gitmodules
+
+# Ignore IDE metadata
+.vscode/
+.idea/
+
+# Ignore logs and caches
+logs/
+*.log
+*.tsbuildinfo
+
+# Ignore testing artifacts
+coverage/
+.nyc_output/
+
+# Ignore local environment variables (keep .env.example)
+.env
+!.env.example
+!.env.prod.example
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore dependency tarballs (if any)
+*.tgz
+
+# Ignore Antigravity agents folder
+.agents/
