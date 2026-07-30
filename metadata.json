@@ -1,0 +1,6 @@
+{
+  "name": "Hermanos Code (AITerm)",
+  "description": "Multi-tab/multi-pane desktop terminal manager for orchestrating AI CLI agents in parallel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
