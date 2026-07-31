@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { createServer as createHttpServer } from 'http';
 import { Server } from 'socket.io';
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import * as pty from 'node-pty';
 import os from 'os';
 
 async function startServer() {
@@ -22,7 +22,7 @@ async function startServer() {
   });
 
   // Socket.io for Terminal multiplexing
-  const terminals: Record<string, ChildProcessWithoutNullStreams> = {};
+  const terminals: Record<string, pty.IPty> = {};
 
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);
@@ -34,33 +34,28 @@ async function startServer() {
       const shell = os.platform() === 'win32' ? 'cmd.exe' : 'bash';
       
       try {
-        const ptyProcess = spawn(shell, [], {
-          cwd: process.env.HOME || process.cwd(),
-          env: {
-            ...process.env,
-            TERM: 'xterm-color',
-            COLORTERM: 'truecolor'
-          } as NodeJS.ProcessEnv
+        const ptyProcess = pty.spawn(shell, [], {
+          name: 'xterm-color',
+          cols: cols || 80,
+          rows: rows || 24,
+          cwd: process.env.HOME || process.env.USERPROFILE || process.cwd(),
+          env: process.env as Record<string, string>
         });
 
         terminals[id] = ptyProcess;
 
-        ptyProcess.stdout.on('data', (output) => {
-          socket.emit(`terminal-data-${id}`, output.toString());
+        ptyProcess.onData((data) => {
+          socket.emit(`terminal-data-${id}`, data);
         });
 
-        ptyProcess.stderr.on('data', (output) => {
-          socket.emit(`terminal-data-${id}`, output.toString());
-        });
-
-        ptyProcess.on('exit', (exitCode, signal) => {
+        ptyProcess.onExit(({ exitCode, signal }) => {
           console.log(`Terminal ${id} exited with code ${exitCode}`);
           socket.emit(`terminal-exit-${id}`, { exitCode, signal });
           delete terminals[id];
         });
         
         // initial prompt
-        socket.emit(`terminal-data-${id}`, `\r\nConnected to simulated terminal (${id})\r\n$ `);
+        socket.emit(`terminal-data-${id}`, `\r\nConnected to real PTY terminal (${id})\r\n`);
       } catch (err) {
         console.error("Failed to spawn process", err);
         socket.emit(`terminal-data-${id}`, `\r\nError starting terminal: ${String(err)}\r\n`);
@@ -70,13 +65,21 @@ async function startServer() {
     socket.on('terminal-input', (data) => {
       const { id, input } = data;
       const ptyProcess = terminals[id];
-      if (ptyProcess && ptyProcess.stdin) {
-        ptyProcess.stdin.write(input);
+      if (ptyProcess) {
+        ptyProcess.write(input);
       }
     });
 
     socket.on('resize-terminal', (data) => {
-      // Mock resize, child_process doesn't support pty resize natively
+      const { id, cols, rows } = data;
+      const ptyProcess = terminals[id];
+      if (ptyProcess && cols && rows) {
+        try {
+          ptyProcess.resize(cols, rows);
+        } catch (e) {
+          console.error(`Failed to resize terminal ${id}`, e);
+        }
+      }
     });
 
     socket.on('kill-terminal', (data) => {
