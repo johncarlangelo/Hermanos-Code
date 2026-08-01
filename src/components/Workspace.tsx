@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { TerminalPane } from './TerminalPane';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { Group, Panel, Separator } from 'react-resizable-panels';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -33,7 +34,7 @@ export const Workspace = () => {
   };
 
   return (
-    <main className="flex-1 flex flex-col bg-zinc-950 z-10 relative">
+    <main className="h-full w-full flex flex-col bg-zinc-950 z-10 relative">
       {/* Command Center Header */}
       <header className="h-12 border-b border-zinc-900 flex items-center justify-between px-4 bg-zinc-950/50 backdrop-blur shrink-0">
         <div className="flex items-center gap-6">
@@ -80,25 +81,21 @@ export const Workspace = () => {
       </header>
 
       {/* Main Grid Canvas */}
-      {activePanes.length === 0 ? (
-        <div className="flex-1 bg-zinc-900 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-zinc-500 font-mono text-xs uppercase tracking-widest">No Active Agents</h2>
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 grid gap-px bg-zinc-900" style={{
-          gridTemplateColumns: `repeat(${Math.min(activePanes.length, 2)}, minmax(0, 1fr))`,
-          gridTemplateRows: activePanes.length > 2 ? 'repeat(2, minmax(0, 1fr))' : '1fr'
-        }}>
-          {activePanes.map((paneId, index) => (
+      {(() => {
+        if (activePanes.length === 0) {
+          return (
+            <div className="flex-1 min-h-0 w-full bg-zinc-900 flex items-center justify-center">
+              <div className="text-center">
+                <h2 className="text-zinc-500 font-mono text-xs uppercase tracking-widest">No Active Agents</h2>
+              </div>
+            </div>
+          );
+        }
+
+        const renderPane = (paneId: string) => (
+          <Panel key={paneId} className={cn("relative flex flex-col bg-black transition-opacity duration-200", draggedPane === paneId ? "opacity-50" : "opacity-100")}>
             <div 
-              key={paneId} 
-              className={cn(
-                activePanes.length === 3 && index === 0 ? "row-span-2" : "", 
-                "relative flex flex-col bg-black transition-opacity duration-200",
-                draggedPane === paneId ? "opacity-50" : "opacity-100"
-              )}
+              className="w-full h-full relative"
               draggable
               onDragStart={(e) => handleDragStart(e, paneId)}
               onDragOver={handleDragOver}
@@ -106,9 +103,83 @@ export const Workspace = () => {
             >
               <TerminalPane id={paneId} />
             </div>
-          ))}
-        </div>
-      )}
+          </Panel>
+        );
+
+        const resizeHandleX = (key: string) => (
+          <Separator key={key} className="w-[1px] bg-zinc-900 hover:bg-purple-500 transition-colors duration-300 relative z-50 group">
+            <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize z-50"></div>
+          </Separator>
+        );
+
+        const resizeHandleY = (key: string) => (
+          <Separator key={key} className="h-[1px] bg-zinc-900 hover:bg-purple-500 transition-colors duration-300 relative z-50 group">
+            <div className="absolute inset-x-0 -top-1 -bottom-1 cursor-row-resize z-50"></div>
+          </Separator>
+        );
+
+        if (activePanes.length === 1) {
+          return (
+            <div className="flex-1 min-h-0 w-full bg-zinc-900">
+              <Group orientation="horizontal" className="h-full w-full">
+                {renderPane(activePanes[0])}
+              </Group>
+            </div>
+          );
+        }
+
+        if (activePanes.length === 2) {
+          return (
+            <div className="flex-1 min-h-0 w-full bg-zinc-900">
+              <Group orientation="horizontal" className="h-full w-full">
+                {renderPane(activePanes[0])}
+                {resizeHandleX('rx1')}
+                {renderPane(activePanes[1])}
+              </Group>
+            </div>
+          );
+        }
+
+        if (activePanes.length === 3) {
+          return (
+            <div className="flex-1 min-h-0 w-full bg-zinc-900">
+              <Group orientation="horizontal" className="h-full w-full">
+                {renderPane(activePanes[0])}
+                {resizeHandleX('rx1')}
+                <Panel>
+                  <Group orientation="vertical" className="h-full w-full">
+                    {renderPane(activePanes[1])}
+                    {resizeHandleY('ry1')}
+                    {renderPane(activePanes[2])}
+                  </Group>
+                </Panel>
+              </Group>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex-1 min-h-0 w-full bg-zinc-900">
+            <Group orientation="horizontal" className="h-full w-full">
+              <Panel>
+                <Group orientation="vertical" className="h-full w-full">
+                  {renderPane(activePanes[0])}
+                  {resizeHandleY('ry1')}
+                  {renderPane(activePanes[2] || activePanes[1])}
+                </Group>
+              </Panel>
+              {resizeHandleX('rx1')}
+              <Panel>
+                <Group orientation="vertical" className="h-full w-full">
+                  {renderPane(activePanes[1])}
+                  {resizeHandleY('ry2')}
+                  {activePanes[3] ? renderPane(activePanes[3]) : null}
+                </Group>
+              </Panel>
+            </Group>
+          </div>
+        );
+      })()}
 
       {/* Terminal Status Bar */}
       <footer className="h-8 border-t border-zinc-900 bg-zinc-950 px-4 flex items-center justify-between text-[10px] font-mono text-zinc-500 shrink-0">

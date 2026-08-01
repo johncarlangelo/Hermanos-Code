@@ -152,13 +152,9 @@ const TreeNode: React.FC<{ node: TerminalNode; level?: number; isLast?: boolean 
 export const Sidebar = () => {
   const nodes = useStore((state) => state.nodes);
   const activePanes = useStore((state) => state.activePanes);
-  const isSidebarOpen = useStore((state) => state.isSidebarOpen);
 
   return (
-    <aside className={cn(
-      "h-full bg-zinc-950 border-zinc-900 flex flex-col flex-shrink-0 select-none transition-all duration-300 overflow-hidden",
-      isSidebarOpen ? "w-72 border-r" : "w-0 border-r-0"
-    )}>
+    <aside className="h-full w-full bg-zinc-950 border-r border-zinc-900 flex flex-col flex-shrink-0 select-none overflow-hidden">
       <div className="p-6 border-b border-zinc-900 shrink-0">
         <div className="flex items-center gap-3 whitespace-nowrap">
           <div className="w-3 h-3 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.8)] animate-pulse-glow shrink-0"></div>
@@ -167,7 +163,7 @@ export const Sidebar = () => {
         <p className="text-[10px] text-zinc-500 mt-1 font-mono uppercase tracking-tighter whitespace-nowrap">Command Center v1.0.4-stable</p>
       </div>
       <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-zinc-800">
-        <div className="flex flex-col relative space-y-1 min-w-[240px]">
+        <div className="flex flex-col relative space-y-1">
           {nodes.map((node, idx) => (
             <TreeNode 
               key={node.id} 

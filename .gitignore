@@ -54,3 +54,6 @@ upcoming_feature.md
 
 # Ignore local MCP config
 .agents/mcp.json
+
+# Ignore Playwright MCP artifacts
+.playwright-mcp/
