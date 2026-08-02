@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useStore } from '../store';
 import { TerminalPane } from './TerminalPane';
+import { DataCore } from './DataCore';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Group, Panel, Separator } from 'react-resizable-panels';
@@ -9,11 +11,25 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-export const Workspace = () => {
+export const Workspace: React.FC = () => {
   const activePanes = useStore((state) => state.activePanes);
   const reorderPanes = useStore((state) => state.reorderPanes);
   const toggleSidebar = useStore((state) => state.toggleSidebar);
   const [draggedPane, setDraggedPane] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<'sessions' | 'metrics'>('sessions');
+
+  const handleViewChange = (view: 'sessions' | 'metrics') => {
+    if (view === activeView) return;
+    if (!(document as any).startViewTransition) {
+      setActiveView(view);
+      return;
+    }
+    (document as any).startViewTransition(() => {
+      flushSync(() => {
+        setActiveView(view);
+      });
+    });
+  };
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedPane(id);
@@ -51,9 +67,18 @@ export const Workspace = () => {
           </div>
           <div className="h-4 w-[1px] bg-zinc-800"></div>
           <div className="flex items-center gap-4">
-            <button className="text-xs text-zinc-400 hover:text-white transition-colors">Sessions</button>
-            <button className="text-xs text-zinc-400 hover:text-white transition-colors">Metrics</button>
-            <button className="text-xs text-white border-b border-purple-500 pb-3 mt-3 font-medium">Terminal</button>
+            <button 
+              onClick={() => handleViewChange('sessions')}
+              className={cn("text-xs transition-colors pb-3 mt-3", activeView === 'sessions' ? "text-white border-b border-purple-500 font-medium" : "text-zinc-400 hover:text-white")}
+            >
+              Terminal
+            </button>
+            <button 
+              onClick={() => handleViewChange('metrics')}
+              className={cn("text-xs transition-colors pb-3 mt-3", activeView === 'metrics' ? "text-white border-b border-purple-500 font-medium" : "text-zinc-400 hover:text-white")}
+            >
+              Metrics
+            </button>
           </div>
         </div>
         <div className="flex-1 max-w-md mx-8 hidden md:block">
@@ -81,7 +106,10 @@ export const Workspace = () => {
       </header>
 
       {/* Main Grid Canvas */}
-      {(() => {
+      <div className="flex-1 min-h-0 w-full relative" style={{ viewTransitionName: 'workspace-canvas' as any }}>
+      {activeView === 'metrics' ? (
+        <DataCore />
+      ) : (() => {
         if (activePanes.length === 0) {
           return (
             <div className="flex-1 min-h-0 w-full bg-zinc-900 flex items-center justify-center">
@@ -118,68 +146,73 @@ export const Workspace = () => {
           </Separator>
         );
 
-        if (activePanes.length === 1) {
-          return (
-            <div className="flex-1 min-h-0 w-full bg-zinc-900">
-              <Group orientation="horizontal" className="h-full w-full">
-                {renderPane(activePanes[0])}
-              </Group>
-            </div>
-          );
-        }
+        const renderGrid = () => {
+          if (activePanes.length === 1) {
+            return (
+              <div className="flex-1 min-h-0 w-full bg-zinc-900">
+                <Group orientation="horizontal" className="h-full w-full">
+                  {renderPane(activePanes[0])}
+                </Group>
+              </div>
+            );
+          }
 
-        if (activePanes.length === 2) {
-          return (
-            <div className="flex-1 min-h-0 w-full bg-zinc-900">
-              <Group orientation="horizontal" className="h-full w-full">
-                {renderPane(activePanes[0])}
-                {resizeHandleX('rx1')}
-                {renderPane(activePanes[1])}
-              </Group>
-            </div>
-          );
-        }
+          if (activePanes.length === 2) {
+            return (
+              <div className="flex-1 min-h-0 w-full bg-zinc-900">
+                <Group orientation="horizontal" className="h-full w-full">
+                  {renderPane(activePanes[0])}
+                  {resizeHandleX('rx1')}
+                  {renderPane(activePanes[1])}
+                </Group>
+              </div>
+            );
+          }
 
-        if (activePanes.length === 3) {
+          if (activePanes.length === 3) {
+            return (
+              <div className="flex-1 min-h-0 w-full bg-zinc-900">
+                <Group orientation="horizontal" className="h-full w-full">
+                  {renderPane(activePanes[0])}
+                  {resizeHandleX('rx1')}
+                  <Panel>
+                    <Group orientation="vertical" className="h-full w-full">
+                      {renderPane(activePanes[1])}
+                      {resizeHandleY('ry1')}
+                      {renderPane(activePanes[2])}
+                    </Group>
+                  </Panel>
+                </Group>
+              </div>
+            );
+          }
+
           return (
             <div className="flex-1 min-h-0 w-full bg-zinc-900">
               <Group orientation="horizontal" className="h-full w-full">
-                {renderPane(activePanes[0])}
+                <Panel>
+                  <Group orientation="vertical" className="h-full w-full">
+                    {renderPane(activePanes[0])}
+                    {resizeHandleY('ry1')}
+                    {renderPane(activePanes[2] || activePanes[1])}
+                  </Group>
+                </Panel>
                 {resizeHandleX('rx1')}
                 <Panel>
                   <Group orientation="vertical" className="h-full w-full">
                     {renderPane(activePanes[1])}
-                    {resizeHandleY('ry1')}
-                    {renderPane(activePanes[2])}
+                    {resizeHandleY('ry2')}
+                    {activePanes[3] ? renderPane(activePanes[3]) : null}
                   </Group>
                 </Panel>
               </Group>
             </div>
           );
-        }
+        };
 
-        return (
-          <div className="flex-1 min-h-0 w-full bg-zinc-900">
-            <Group orientation="horizontal" className="h-full w-full">
-              <Panel>
-                <Group orientation="vertical" className="h-full w-full">
-                  {renderPane(activePanes[0])}
-                  {resizeHandleY('ry1')}
-                  {renderPane(activePanes[2] || activePanes[1])}
-                </Group>
-              </Panel>
-              {resizeHandleX('rx1')}
-              <Panel>
-                <Group orientation="vertical" className="h-full w-full">
-                  {renderPane(activePanes[1])}
-                  {resizeHandleY('ry2')}
-                  {activePanes[3] ? renderPane(activePanes[3]) : null}
-                </Group>
-              </Panel>
-            </Group>
-          </div>
-        );
+        return renderGrid();
       })()}
+      </div>
 
       {/* Terminal Status Bar */}
       <footer className="h-8 border-t border-zinc-900 bg-zinc-950 px-4 flex items-center justify-between text-xs font-mono text-zinc-400 shrink-0">
