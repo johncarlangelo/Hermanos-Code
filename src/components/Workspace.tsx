@@ -45,15 +45,15 @@ export const Workspace = () => {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" x2="9" y1="3" y2="21"/></svg>
           </button>
-          <div className="flex items-center gap-2 text-xs font-medium">
-            <span className="text-zinc-600 uppercase tracking-widest text-[9px]">Canvas</span>
-            <span className="text-zinc-300">Split_Grid_A1</span>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-zinc-500 font-medium">Canvas</span>
+            <span className="text-zinc-300">Default Grid</span>
           </div>
           <div className="h-4 w-[1px] bg-zinc-800"></div>
           <div className="flex items-center gap-4">
-            <button className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Sessions</button>
-            <button className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest transition-colors">Metrics</button>
-            <button className="text-[10px] text-white border-b border-purple-500 pb-3 mt-3 uppercase tracking-widest">Terminal</button>
+            <button className="text-xs text-zinc-400 hover:text-white transition-colors">Sessions</button>
+            <button className="text-xs text-zinc-400 hover:text-white transition-colors">Metrics</button>
+            <button className="text-xs text-white border-b border-purple-500 pb-3 mt-3 font-medium">Terminal</button>
           </div>
         </div>
         <div className="flex-1 max-w-md mx-8 hidden md:block">
@@ -63,11 +63,11 @@ export const Workspace = () => {
             </div>
             <input 
               type="text" 
-              className="block w-full pl-9 pr-8 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-md text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-purple-500/50 focus:bg-zinc-900 transition-all font-mono" 
-              placeholder="Command the swarm (e.g. /dispatch refactor-auth)"
+              className="block w-full pl-9 pr-8 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-md text-xs text-zinc-300 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 focus:bg-zinc-900 transition-all font-mono" 
+              placeholder="Search or enter command (e.g. /dispatch)"
             />
             <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
-               <span className="text-[9px] font-mono text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">⌘K</span>
+               <span className="text-xs font-mono text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded">⌘K</span>
             </div>
           </div>
         </div>
@@ -75,7 +75,7 @@ export const Workspace = () => {
         <div className="flex items-center gap-2">
           <div className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-            <span className="text-[10px] font-mono text-zinc-400">system-idle</span>
+            <span className="text-xs font-mono text-zinc-400">System Idle</span>
           </div>
         </div>
       </header>
@@ -86,7 +86,7 @@ export const Workspace = () => {
           return (
             <div className="flex-1 min-h-0 w-full bg-zinc-900 flex items-center justify-center">
               <div className="text-center">
-                <h2 className="text-zinc-500 font-mono text-xs uppercase tracking-widest">No Active Agents</h2>
+                <h2 className="text-zinc-500 text-sm font-medium">No active agents</h2>
               </div>
             </div>
           );
@@ -107,14 +107,14 @@ export const Workspace = () => {
         );
 
         const resizeHandleX = (key: string) => (
-          <Separator key={key} className="w-[1px] bg-zinc-900 hover:bg-purple-500 transition-colors duration-300 relative z-50 group">
-            <div className="absolute inset-y-0 -left-1 -right-1 cursor-col-resize z-50"></div>
+          <Separator key={key} className="w-[1px] bg-zinc-800 hover:bg-purple-500 hover:shadow-[0_0_15px_rgba(168,85,247,0.8)] transition-all duration-300 relative z-50 group">
+            <div className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize z-50"></div>
           </Separator>
         );
 
         const resizeHandleY = (key: string) => (
-          <Separator key={key} className="h-[1px] bg-zinc-900 hover:bg-purple-500 transition-colors duration-300 relative z-50 group">
-            <div className="absolute inset-x-0 -top-1 -bottom-1 cursor-row-resize z-50"></div>
+          <Separator key={key} className="h-[1px] bg-zinc-800 hover:bg-purple-500 hover:shadow-[0_0_15px_rgba(168,85,247,0.8)] transition-all duration-300 relative z-50 group">
+            <div className="absolute inset-x-0 -top-2 -bottom-2 cursor-row-resize z-50"></div>
           </Separator>
         );
 
@@ -182,14 +182,14 @@ export const Workspace = () => {
       })()}
 
       {/* Terminal Status Bar */}
-      <footer className="h-8 border-t border-zinc-900 bg-zinc-950 px-4 flex items-center justify-between text-[10px] font-mono text-zinc-500 shrink-0">
+      <footer className="h-8 border-t border-zinc-900 bg-zinc-950 px-4 flex items-center justify-between text-xs font-mono text-zinc-400 shrink-0">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5"><div className="w-1 h-1 bg-purple-500"></div> CPU: 12%</span>
           <span className="flex items-center gap-1.5"><div className="w-1 h-1 bg-zinc-700"></div> MEM: 1.2GB</span>
         </div>
         <div className="flex items-center gap-6">
           <span className="text-zinc-700">UTF-8</span>
-          <span className="text-zinc-700">NODE_PTY_OK</span>
+          <span className="text-zinc-700">Terminal Ready</span>
           <span className="text-white border border-zinc-800 px-2 py-0.5 rounded">82 x 44</span>
         </div>
       </footer>

@@ -89,7 +89,7 @@ const TreeNode: React.FC<{ node: TerminalNode; level?: number; isLast?: boolean 
           )}
           
           <span className={cn(
-            "text-[11px] truncate transition-colors duration-300 font-mono tracking-tight",
+            "text-xs truncate transition-colors duration-300 font-mono tracking-tight",
             level === 0 ? "font-semibold" : "",
             node.status === 'active' 
               ? "italic text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-indigo-300 bg-[length:200%_auto] animate-gradient-x font-medium drop-shadow-[0_0_8px_rgba(168,85,247,0.4)]" 
@@ -122,8 +122,8 @@ const TreeNode: React.FC<{ node: TerminalNode; level?: number; isLast?: boolean 
           )}
           
           {isLeaf && node.status === 'active' && (
-            <span className="ml-auto text-[9px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-500 font-mono group-hover:hidden transition-all shrink-0">
-              ACTIVE
+            <span className="ml-auto text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono group-hover:hidden transition-all shrink-0">
+              Active
             </span>
           )}
         </div>
@@ -160,7 +160,7 @@ export const Sidebar = () => {
           <div className="w-3 h-3 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.8)] animate-pulse-glow shrink-0"></div>
           <h1 className="text-sm font-bold tracking-widest text-white uppercase">Hermanos Code</h1>
         </div>
-        <p className="text-[10px] text-zinc-500 mt-1 font-mono uppercase tracking-tighter whitespace-nowrap">Command Center v1.0.4-stable</p>
+        <p className="text-xs text-zinc-500 mt-1 font-mono whitespace-nowrap">Command Center v1.0.4-stable</p>
       </div>
       <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-zinc-800">
         <div className="flex flex-col relative space-y-1">
@@ -180,7 +180,7 @@ export const Sidebar = () => {
            Add Repository
          </button>
          
-         <div className="flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-zinc-500 whitespace-nowrap">
+         <div className="flex justify-between items-center text-xs font-medium text-zinc-400 whitespace-nowrap">
             <span>Active Sessions</span>
             <span className="text-purple-500">{String(activePanes.length).padStart(2, '0')}</span>
          </div>

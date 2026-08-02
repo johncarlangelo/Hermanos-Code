@@ -49,6 +49,9 @@ Thumbs.db
 
 # Ignore Antigravity agents folder
 .agents/
+.agents/skills/impeccable
+.codex/
+.impeccable/critique/
 
 upcoming_feature.md
 

@@ -108,30 +108,30 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id }) => {
   }, [id]);
 
   return (
-    <div className="flex flex-col h-full w-full bg-black border-none rounded-none overflow-hidden relative">
+    <div className="flex flex-col h-full w-full bg-[#0a0a0a] border-none rounded-none overflow-hidden relative group/pane focus-within:ring-1 focus-within:ring-purple-500/30 transition-all duration-300">
       {/* Pane Header */}
-      <div className="h-8 border-b border-zinc-900 flex items-center justify-between px-3 bg-zinc-950 shrink-0 select-none">
-        <div className="flex items-center gap-2">
+      <div className="h-10 border-b border-zinc-800 flex items-center justify-between px-4 bg-zinc-900 shrink-0 select-none group-focus-within/pane:bg-zinc-800 transition-colors duration-300">
+        <div className="flex items-center gap-3">
           {/* Status Dot matching Sidebar */}
           <div 
             className={cn(
-              "w-2 h-2 rounded-full",
+              "w-2 h-2 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]",
               node?.status === 'active' 
-                ? "bg-purple-500 animate-pulse-glow" 
-                : "bg-zinc-600"
+                ? "bg-purple-400 animate-pulse-glow" 
+                : "bg-zinc-500"
             )}
           />
-          <span className="text-[10px] font-mono uppercase text-zinc-400 tracking-wider">{node?.name || id}</span>
+          <span className="text-sm font-semibold text-zinc-200 tracking-wide group-focus-within/pane:text-white transition-colors">{node?.name || id}</span>
         </div>
-        <div className="flex gap-2">
-          <button className="text-zinc-600 hover:text-zinc-400 transition-colors">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+        <div className="flex gap-3">
+          <button className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
           </button>
           <button 
-            className="text-zinc-600 hover:text-red-400 transition-colors"
+            className="text-zinc-500 hover:text-red-400 transition-colors"
             onClick={() => closePane(id)}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>
       </div>
