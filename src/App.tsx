@@ -1,32 +1,27 @@
 import React from 'react';
+import { useStore } from './store';
 import { Sidebar } from './components/Sidebar';
 import { Workspace } from './components/Workspace';
-import { Group, Panel, Separator } from 'react-resizable-panels';
-import { useStore } from './store';
 
 export default function App() {
   const isSidebarOpen = useStore((state) => state.isSidebarOpen);
 
   return (
-    <div className="flex h-screen w-full bg-zinc-950 text-zinc-100 overflow-hidden font-sans relative">
-      <Group orientation="horizontal" className="h-full w-full">
-        {isSidebarOpen && (
-          <>
-            <Panel defaultSize={290} minSize={250} maxSize={290}>
-              <Sidebar />
-            </Panel>
-            <Separator className="w-[1px] bg-zinc-900 hover:bg-purple-500 transition-colors duration-300 relative z-50 group">
-              <div className="absolute inset-y-0 -left-2 -right-2 cursor-col-resize z-50"></div>
-            </Separator>
-          </>
-        )}
-        <Panel>
-          <Workspace />
-        </Panel>
-      </Group>
+    <div className="flex h-screen w-full bg-[var(--color-bg-base)] text-[var(--color-text)] overflow-hidden selection:bg-[var(--color-accent)] selection:text-white relative">
+      
+      {/* Premium Background Depth */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top_right,_var(--color-brand-900)_0%,_transparent_50%),_radial-gradient(ellipse_at_bottom_left,_rgba(129,140,248,0.05)_0%,_transparent_50%)] opacity-40 mix-blend-screen pointer-events-none"></div>
 
-      {/* Overlay Scanlines / CRT Effect */}
-      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.01),rgba(0,255,0,0.01),rgba(0,0,255,0.01))] bg-[length:100%_2px,3px_100%] opacity-5 z-50"></div>
+      <div className="h-full w-full flex relative z-10">
+        {isSidebarOpen && (
+          <div className="w-[300px] shrink-0 h-full bg-[var(--color-bg-glass)] backdrop-blur-3xl border-r border-[var(--color-border)]">
+            <Sidebar />
+          </div>
+        )}
+        <div className="flex-1 min-w-0 h-full bg-transparent">
+          <Workspace />
+        </div>
+      </div>
     </div>
   );
 }

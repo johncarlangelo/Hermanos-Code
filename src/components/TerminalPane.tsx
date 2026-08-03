@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { socket } from '../socket';
 import { useStore } from '../store';
-import { X, SplitSquareHorizontal } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -36,20 +35,22 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id }) => {
     return found;
   })();
 
+  const isActive = node?.status === 'active';
+
   useEffect(() => {
     if (!terminalRef.current) return;
 
-    // Initialize xterm
+    // Initialize xterm with Premium Obsidian Glass colors
     const term = new Terminal({
       theme: {
-        background: '#000000',
-        foreground: '#e4e4e7',
-        cursor: '#a855f7',
-        selectionBackground: 'rgba(168, 85, 247, 0.3)',
+        background: '#00000000', // transparent to let glassmorphism show through
+        foreground: '#fafafa',   // White text
+        cursor: '#818cf8',       // Indigo cursor
+        selectionBackground: 'rgba(129, 140, 248, 0.3)', // Indigo selection
       },
       fontFamily: '"JetBrains Mono", monospace, ui-monospace, SFMono-Regular',
       fontSize: 13,
-      lineHeight: 1.2,
+      lineHeight: 1.5, // slightly looser line height for premium feel
       cursorBlink: true,
       allowTransparency: true,
     });
@@ -86,7 +87,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id }) => {
 
     // Resize observer
     let resizeTimeout: ReturnType<typeof setTimeout>;
-    const resizeObserver = new ResizeObserver((entries) => {
+    const resizeObserver = new ResizeObserver(() => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         if (fitAddonRef.current && xtermRef.current) {
@@ -108,36 +109,40 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id }) => {
   }, [id]);
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0a0a0a] border-none rounded-none overflow-hidden relative group/pane focus-within:ring-1 focus-within:ring-purple-500/30 transition-all duration-300">
+    <div className="flex flex-col h-full w-full bg-black/40 backdrop-blur-md rounded-xl overflow-hidden relative group/pane border border-white/5 focus-within:border-[var(--color-accent)] focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+      
       {/* Pane Header */}
-      <div className="h-10 border-b border-zinc-800 flex items-center justify-between px-4 bg-zinc-900 shrink-0 select-none group-focus-within/pane:bg-zinc-800 transition-colors duration-300">
+      <div className="h-10 border-b border-white/5 flex items-center justify-between px-4 bg-white/5 shrink-0 select-none transition-colors duration-300 group-focus-within/pane:bg-white/10">
         <div className="flex items-center gap-3">
-          {/* Status Dot matching Sidebar */}
-          <div 
-            className={cn(
-              "w-2 h-2 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.6)]",
-              node?.status === 'active' 
-                ? "bg-purple-400 animate-pulse-glow" 
-                : "bg-zinc-500"
+          {/* Status Dot */}
+          <div className="w-4 h-4 flex items-center justify-center">
+            {isActive ? (
+              <span className="text-[var(--color-accent)] animate-processing-sweep bg-[length:200%_auto] bg-gradient-to-r from-[var(--color-accent)] via-white to-[var(--color-accent)] text-transparent bg-clip-text font-bold text-lg leading-none mt-1 drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]">~</span>
+            ) : (
+              <span className="text-[var(--color-text-dim)] font-mono text-sm">-</span>
             )}
-          />
-          <span className="text-sm font-semibold text-zinc-200 tracking-wide group-focus-within/pane:text-white transition-colors">{node?.name || id}</span>
+          </div>
+          <span className={cn(
+            "text-sm font-semibold tracking-wide transition-colors",
+            isActive ? "text-white" : "text-[var(--color-text-dim)] group-focus-within/pane:text-white"
+          )}>
+            {node?.name || id}
+          </span>
         </div>
-        <div className="flex gap-3">
-          <button className="text-zinc-500 hover:text-zinc-300 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
-          </button>
+        <div className="flex gap-2 items-center">
           <button 
-            className="text-zinc-500 hover:text-red-400 transition-colors"
+            className="text-[var(--color-text-dim)] hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-md p-1.5"
             onClick={() => closePane(id)}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>
       </div>
       
       {/* Terminal Container */}
-      <div className="flex-1 w-full h-full relative p-2" ref={terminalRef} />
+      <div className="flex-1 w-full h-full relative p-3 pb-1" ref={terminalRef}>
+        {/* Terminal instance mounts here */}
+      </div>
     </div>
   );
 };
