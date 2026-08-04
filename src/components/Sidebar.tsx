@@ -1,155 +1,266 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../store';
 import { TerminalNode } from '../types';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import {
+  ChevronRight,
+  ChevronDown,
+  Terminal,
+  Folder,
+  FolderOpen,
+  Plus,
+  PanelLeftClose,
+  PanelLeft,
+} from 'lucide-react';
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+// ─── Status dot config ───
+const statusColors: Record<string, string> = {
+  active: 'bg-[var(--color-accent)] animate-pulse-glow',
+  running: 'bg-[var(--color-accent)] animate-pulse-glow',
+  error: 'bg-[var(--color-accent-red)] animate-pulse-fast',
+  disconnected: 'bg-[var(--color-text-dim)]',
+  idle: 'bg-[var(--color-text-dim)]',
+};
 
-const TreeNode: React.FC<{ node: TerminalNode; level?: number; isLast?: boolean }> = ({ node, level = 0, isLast = false }) => {
-  const toggleNodeExpansion = useStore((state) => state.toggleNodeExpansion);
-  const openPane = useStore((state) => state.openPane);
-  const activePanes = useStore((state) => state.activePanes);
+// ─── Tree Node ───
+const TreeNode: React.FC<{ node: TerminalNode; level?: number }> = ({ node, level = 0 }) => {
+  const toggleNodeExpansion = useStore(s => s.toggleNodeExpansion);
+  const openTab = useStore(s => s.openTab);
+  const activeTab = useStore(s => s.activeTab);
 
   const hasChildren = node.children && node.children.length > 0;
   const isLeaf = !hasChildren;
-  const isOpen = activePanes.includes(node.id);
-  const isActive = node.status === 'active';
+  const isOpen = node.id === activeTab;
+  const isActive = node.status === 'active' || node.status === 'running';
+  const dotClass = statusColors[node.status] || statusColors.idle;
 
   return (
-    <div className={cn("relative space-y-0.5", level === 0 && "mt-3")}>
-      <div
-        data-tree-node
-        tabIndex={0}
-        className={cn(
-          "flex items-center gap-2 group cursor-pointer focus:outline-none transition-all duration-200 rounded-md mx-2",
-          level > 0 ? "h-8 pl-4" : "h-7",
-          isOpen && isLeaf ? "bg-white/5 shadow-inner" : "hover:bg-white/5"
-        )}
-        style={level > 0 ? { marginLeft: `${level * 16}px` } : {}}
+    <div className="relative">
+      <motion.button
+        className={`w-full flex items-center gap-2 px-3 py-1.5 text-left cursor-pointer rounded-md mx-1 transition-colors duration-150 group relative overflow-hidden
+          ${isOpen && isLeaf
+            ? 'text-[var(--color-text-primary)]'
+            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/4'
+          }`}
+        style={{ paddingLeft: `${12 + level * 16}px` }}
         onClick={() => {
           if (hasChildren) {
             toggleNodeExpansion(node.id);
           } else {
-            openPane(node.id);
+            openTab(node.id);
           }
         }}
+        whileTap={{ scale: 0.98 }}
       >
-        {/* Active Focus Indicator */}
-        {isOpen && isLeaf && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] bg-[var(--color-accent)] rounded-full shadow-[0_0_8px_var(--color-accent)]"></div>
+        {/* In-progress sweep gradient background */}
+        {isActive && isLeaf && (
+          <div
+            className="absolute inset-0 rounded-md animate-progress-sweep pointer-events-none"
+            style={{
+              backgroundImage: 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.08) 30%, rgba(6,182,212,0.15) 50%, rgba(6,182,212,0.08) 70%, transparent 100%)',
+              backgroundSize: '200% 100%',
+            }}
+          />
         )}
 
-        <div className="flex items-center gap-3 w-full px-2">
-          {hasChildren ? (
-            <div className="w-3 h-3 flex items-center justify-center text-[var(--color-text-dim)] font-mono text-xs transition-transform duration-200">
-              {node.isExpanded ? '-' : '+'}
-            </div>
-          ) : (
-            <div className="w-3 h-3 flex items-center justify-center">
-              {isActive ? (
-                <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] shadow-[0_0_8px_var(--color-accent)] animate-pulse-glow"></div>
-              ) : (
-                <div className="w-1 h-1 rounded-full bg-[var(--color-border)] group-hover:bg-[var(--color-text-dim)] transition-colors"></div>
-              )}
-            </div>
-          )}
+        {/* Static active background (non-animated fallback) */}
+        {isOpen && isLeaf && !isActive && (
+          <div className="absolute inset-0 rounded-md bg-[var(--color-accent)]/8 pointer-events-none" />
+        )}
 
-          <span className={cn(
-            "text-[13px] truncate transition-colors duration-200 flex-1",
-            level === 0 ? "font-semibold text-[var(--color-text)] uppercase tracking-wider text-[11px]" : "font-medium",
-            isActive
-              ? "text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-accent)] via-white to-[var(--color-accent)] bg-[length:200%_auto] animate-processing-sweep drop-shadow-[0_0_8px_rgba(129,140,248,0.5)]"
-              : (isOpen ? "text-white" : "text-[var(--color-text-dim)] group-hover:text-[var(--color-text)]")
-          )}>
-            {node.name}
+        {/* Expand / Status icon */}
+        {hasChildren ? (
+          <span className="w-4 h-4 flex items-center justify-center text-[var(--color-text-dim)] shrink-0 relative z-10">
+            {node.isExpanded ? (
+              <ChevronDown className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5" />
+            )}
           </span>
+        ) : (
+          <span className="w-4 h-4 flex items-center justify-center shrink-0 relative z-10">
+            <div className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+          </span>
+        )}
 
-          {/* Action Icons */}
-          {isLeaf && (
-            <div className="ml-auto hidden group-hover:flex items-center gap-2 shrink-0">
-              <button
-                className="text-[var(--color-text-dim)] hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-md p-1"
-                title="Split View"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openPane(node.id);
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" /><line x1="12" x2="12" y1="3" y2="21" /></svg>
-              </button>
-            </div>
+        {/* Folder / Terminal icon */}
+        <span className="relative z-10">
+          {hasChildren ? (
+            <span className="text-[var(--color-text-dim)] shrink-0">
+              {node.isExpanded ? (
+                <FolderOpen className="w-3.5 h-3.5" />
+              ) : (
+                <Folder className="w-3.5 h-3.5" />
+              )}
+            </span>
+          ) : (
+            <Terminal className="w-3.5 h-3.5 shrink-0 text-[var(--color-text-dim)]" />
           )}
-        </div>
-      </div>
+        </span>
 
-      {hasChildren && node.isExpanded && (
-        <div className="flex flex-col ml-4 pl-1 my-1 border-l border-white/5">
-          {node.children!.map((child, idx) => (
-            <TreeNode
-              key={child.id}
-              node={child}
-              level={level + 1}
-              isLast={idx === node.children!.length - 1}
-            />
-          ))}
-        </div>
-      )}
+        {/* Label */}
+        <span className={`text-[12px] truncate flex-1 relative z-10 ${level === 0 ? 'font-semibold uppercase tracking-wider text-[11px]' : 'font-medium'} ${isActive && isLeaf ? 'text-[var(--color-accent)]' : ''}`}>
+          {node.name}
+        </span>
+
+        {/* "Working" badge for active agents */}
+        {isActive && isLeaf && (
+          <span className="relative z-10 text-[9px] font-mono uppercase tracking-wider text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-1.5 py-0.5 rounded border border-[var(--color-accent)]/20 shrink-0">
+            working
+          </span>
+        )}
+
+        {/* Active indicator bar */}
+        {isOpen && isLeaf && (
+          <motion.div
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-[var(--color-accent)] rounded-full z-10"
+            layoutId="sidebar-active"
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            style={{ boxShadow: '0 0 6px var(--color-glow)' }}
+          />
+        )}
+      </motion.button>
+
+      {/* Children */}
+      <AnimatePresence initial={false}>
+        {hasChildren && node.isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="ml-4 border-l border-[var(--color-border)] pl-0">
+              {node.children!.map(child => (
+                <TreeNode key={child.id} node={child} level={level + 1} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-export const Sidebar = () => {
-  const nodes = useStore((state) => state.nodes);
-  const activePanes = useStore((state) => state.activePanes);
+// ─── Sidebar ───
+export const Sidebar: React.FC = () => {
+  const nodes = useStore(s => s.nodes);
+  const tabs = useStore(s => s.tabs);
+  const isSidebarOpen = useStore(s => s.isSidebarOpen);
+  const sidebarCollapsed = useStore(s => s.sidebarCollapsed);
+  const toggleSidebar = useStore(s => s.toggleSidebar);
+  const toggleSidebarCollapse = useStore(s => s.toggleSidebarCollapse);
+
+  if (!isSidebarOpen) return null;
+
+  const isCollapsed = sidebarCollapsed;
 
   return (
-    <aside className="h-full w-full flex flex-col flex-shrink-0 select-none overflow-hidden text-[var(--color-text)]">
-      <div className="px-6 py-5 shrink-0">
-        <div className="flex items-center justify-between whitespace-nowrap">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[var(--color-brand-400)] to-[var(--color-brand-700)] shadow-[0_0_15px_rgba(99,102,241,0.4)] flex items-center justify-center">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="m4 10 8-8 8 8" /><path d="m4 14 8 8 8-8" /></svg>
+    <motion.aside
+      className="h-full flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] select-none overflow-hidden shrink-0 relative"
+      initial={false}
+      animate={{ width: isCollapsed ? 48 : 260 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+    >
+      {/* ─── Header ─── */}
+      <div className="px-3 py-3 shrink-0 border-b border-[var(--color-border)]">
+        <div className="flex items-center justify-between">
+          <div className={`flex items-center gap-2 overflow-hidden ${isCollapsed ? 'justify-center w-full' : ''}`}>
+            {/* Logo */}
+            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[var(--color-accent)] to-cyan-700 flex items-center justify-center shrink-0 glow-accent-sm">
+              <Terminal className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
             </div>
-            <h1 className="text-[15px] font-bold tracking-tight text-white">Hermanos<span className="text-[var(--color-text-dim)] font-medium"> Code</span></h1>
+            {!isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                className="flex items-center gap-2 min-w-0"
+              >
+                <h1 className="text-[13px] font-bold tracking-tight text-[var(--color-text-primary)] whitespace-nowrap">
+                  Hermanos<span className="text-[var(--color-text-muted)] font-normal"> Code</span>
+                </h1>
+              </motion.div>
+            )}
           </div>
-          <span className="text-[10px] font-mono text-[var(--color-text-dim)] uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-white/10">v1.1</span>
+
+          {/* Collapse / Expand button — always visible */}
+          {!isCollapsed && (
+            <button
+              className="p-1.5 rounded-md text-[var(--color-text-dim)] hover:text-[var(--color-text-muted)] hover:bg-white/5 transition-colors cursor-pointer"
+              onClick={toggleSidebarCollapse}
+              title="Collapse Sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        <div className="flex flex-col relative">
-          {nodes.map((node, idx) => (
-            <TreeNode
-              key={node.id}
-              node={node}
-              isLast={idx === nodes.length - 1}
-            />
+      {/* Expand button when collapsed — positioned below the logo */}
+      {isCollapsed && (
+        <div className="flex flex-col items-center py-2 gap-1">
+          <button
+            className="p-1.5 rounded-md text-[var(--color-text-dim)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 transition-colors cursor-pointer"
+            onClick={toggleSidebarCollapse}
+            title="Expand Sidebar"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ─── Tree ─── */}
+      {!isCollapsed && (
+        <motion.div
+          className="flex-1 overflow-y-auto py-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="px-3 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-dim)]">
+              Sessions
+            </span>
+          </div>
+          {nodes.map(node => (
+            <TreeNode key={node.id} node={node} />
           ))}
-        </div>
-      </div>
+        </motion.div>
+      )}
 
-      <div className="mt-auto p-4 shrink-0 space-y-4">
-        <button className="w-full flex items-center justify-center gap-2 bg-[var(--color-brand-600)] hover:bg-[var(--color-brand-500)] text-white border border-[var(--color-brand-400)]/30 rounded-lg py-2 text-sm font-medium transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] whitespace-nowrap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14" /><path d="M5 12h14" /></svg>
-          Add Repository
-        </button>
+      {/* ─── Bottom Actions ─── */}
+      {!isCollapsed && (
+        <div className="mt-auto p-3 shrink-0 space-y-3 border-t border-[var(--color-border)]">
+          {/* Add Session */}
+          <motion.button
+            className="w-full flex items-center justify-center gap-2 bg-[var(--color-accent)]/10 hover:bg-[var(--color-accent)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20 rounded-lg py-2 text-[12px] font-medium transition-all cursor-pointer"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
+            Add Session
+          </motion.button>
 
-        <div className="bg-white/5 rounded-lg p-3 border border-white/5">
-          <div className="flex justify-between items-center text-[10px] font-semibold text-[var(--color-text-dim)] uppercase tracking-wider whitespace-nowrap mb-2">
-            <span>Active Sessions</span>
-            <span className="text-[var(--color-accent)]">{String(activePanes.length).padStart(2, '0')}</span>
-          </div>
-          <div className="h-1.5 bg-black/40 rounded-full overflow-hidden shadow-inner">
-            <div
-              className="h-full bg-gradient-to-r from-[var(--color-brand-600)] to-[var(--color-brand-400)] transition-all duration-300 rounded-full shadow-[0_0_10px_var(--color-accent)]"
-              style={{ width: `${Math.min(100, Math.max(10, (activePanes.length / 5) * 100))}%` }}
-            ></div>
+          {/* Status Widget */}
+          <div className="bg-[var(--color-void)] rounded-lg p-2.5 border border-[var(--color-border)]">
+            <div className="flex justify-between items-center text-[10px] font-medium text-[var(--color-text-dim)] uppercase tracking-wider mb-2">
+              <span>Active</span>
+              <span className="text-[var(--color-accent)] font-mono">{String(tabs.length).padStart(2, '0')}</span>
+            </div>
+            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-[var(--color-accent)] to-cyan-400 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, Math.max(10, (tabs.length / 5) * 100))}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                style={{ boxShadow: '0 0 8px var(--color-glow)' }}
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      )}
+    </motion.aside>
   );
 };
