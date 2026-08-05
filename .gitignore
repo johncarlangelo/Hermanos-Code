@@ -60,3 +60,6 @@ upcoming_feature.md
 
 # Ignore Playwright MCP artifacts
 .playwright-mcp/
+
+# Ignore UI Pro Max skill
+.agent/
