@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../store';
+import { useConfirmStore } from '../confirmStore';
 import { X, Columns2, Rows2, Plus, GripVertical } from 'lucide-react';
 
 export const TabBar: React.FC = () => {
@@ -8,11 +9,14 @@ export const TabBar: React.FC = () => {
   const activeTab = useStore(s => s.activeTab);
   const setActiveTab = useStore(s => s.setActiveTab);
   const closeTab = useStore(s => s.closeTab);
+  const deleteSession = useStore(s => s.deleteSession);
   const reorderTabs = useStore(s => s.reorderTabs);
   const layoutMode = useStore(s => s.layoutMode);
   const toggleLayoutMode = useStore(s => s.toggleLayoutMode);
   const openTab = useStore(s => s.openTab);
   const nodes = useStore(s => s.nodes);
+
+  const createSession = useStore(s => s.createSession);
 
   const [draggedTab, setDraggedTab] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -45,18 +49,9 @@ export const TabBar: React.FC = () => {
     setDraggedTab(null);
   };
 
-  // Find first available node to open as new tab
+  // Create a brand new session
   const handleAddTab = () => {
-    const allLeafs: string[] = [];
-    const walk = (list: typeof nodes) => {
-      for (const n of list) {
-        if (!n.children || n.children.length === 0) allLeafs.push(n.id);
-        if (n.children) walk(n.children);
-      }
-    };
-    walk(nodes);
-    const unopened = allLeafs.find(id => !tabs.some(t => t.id === id));
-    if (unopened) openTab(unopened);
+    createSession();
   };
 
   return (
@@ -102,7 +97,19 @@ export const TabBar: React.FC = () => {
                   {/* Close button */}
                   <span
                     className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 transition-all duration-100 cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const confirmed = await useConfirmStore.getState().confirm({
+                        title: 'Terminate Session',
+                        message: `Are you sure you want to close "${tab.label}"? This will terminate the running terminal process.`,
+                        confirmLabel: 'Terminate Session',
+                        cancelLabel: 'Cancel',
+                        variant: 'danger',
+                      });
+                      if (confirmed) {
+                        deleteSession(tab.id);
+                      }
+                    }}
                     role="button"
                     aria-label={`Close ${tab.label}`}
                   >

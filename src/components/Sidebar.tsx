@@ -11,7 +11,9 @@ import {
   Plus,
   PanelLeftClose,
   PanelLeft,
+  Trash2,
 } from 'lucide-react';
+import { useConfirmStore } from '../confirmStore';
 
 // ─── Status dot config ───
 const statusColors: Record<string, string> = {
@@ -27,6 +29,7 @@ const TreeNode: React.FC<{ node: TerminalNode; level?: number }> = ({ node, leve
   const toggleNodeExpansion = useStore(s => s.toggleNodeExpansion);
   const openTab = useStore(s => s.openTab);
   const activeTab = useStore(s => s.activeTab);
+  const deleteSession = useStore(s => s.deleteSession);
 
   const hasChildren = node.children && node.children.length > 0;
   const isLeaf = !hasChildren;
@@ -110,6 +113,30 @@ const TreeNode: React.FC<{ node: TerminalNode; level?: number }> = ({ node, leve
           </span>
         )}
 
+        {/* Delete button on hover */}
+        {isLeaf && !isActive && (
+          <span
+            className="relative z-10 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-white/10 transition-all cursor-pointer text-[var(--color-text-dim)] hover:text-[var(--color-accent-red)] shrink-0"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const confirmed = await useConfirmStore.getState().confirm({
+                title: 'Terminate Session',
+                message: `Are you sure you want to delete "${node.name}"? This will kill the active terminal session.`,
+                confirmLabel: 'Delete Session',
+                cancelLabel: 'Cancel',
+                variant: 'danger',
+              });
+              if (confirmed) {
+                deleteSession(node.id);
+              }
+            }}
+            role="button"
+            title="Delete session"
+          >
+            <Trash2 className="w-3 h-3" />
+          </span>
+        )}
+
         {/* Active indicator bar */}
         {isOpen && isLeaf && (
           <motion.div
@@ -151,6 +178,7 @@ export const Sidebar: React.FC = () => {
   const sidebarCollapsed = useStore(s => s.sidebarCollapsed);
   const toggleSidebar = useStore(s => s.toggleSidebar);
   const toggleSidebarCollapse = useStore(s => s.toggleSidebarCollapse);
+  const createSession = useStore(s => s.createSession);
 
   if (!isSidebarOpen) return null;
 
@@ -238,6 +266,7 @@ export const Sidebar: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 bg-[var(--color-accent)]/10 hover:bg-[var(--color-accent)]/20 text-[var(--color-accent)] border border-[var(--color-accent)]/20 rounded-lg py-2 text-[12px] font-medium transition-all cursor-pointer"
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
+            onClick={() => createSession()}
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
             Add Session

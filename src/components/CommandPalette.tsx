@@ -20,6 +20,7 @@ export const CommandPalette: React.FC = () => {
   const openTab = useStore(s => s.openTab);
   const activeTab = useStore(s => s.activeTab);
   const closeTab = useStore(s => s.closeTab);
+  const createSession = useStore(s => s.createSession);
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -42,6 +43,13 @@ export const CommandPalette: React.FC = () => {
 
   const commands: CommandItem[] = useMemo(() => {
     const items: CommandItem[] = [
+      {
+        id: 'new-session',
+        label: 'New Session',
+        shortcut: '⌘N',
+        icon: <Plus className="w-4 h-4" />,
+        action: () => { createSession(); setOpen(false); },
+      },
       {
         id: 'toggle-sidebar',
         label: 'Toggle Sidebar',

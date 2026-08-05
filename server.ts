@@ -27,9 +27,20 @@ async function startServer() {
   io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
+    // Track which terminals belong to this socket
+    const socketTerminals = new Set<string>();
+
     socket.on('create-terminal', (data) => {
       const { id, cols = 80, rows = 24 } = data;
+      
+      // Prevent duplicate creation
+      if (terminals[id]) {
+        console.log(`Terminal ${id} already exists, skipping creation`);
+        return;
+      }
+
       console.log(`Creating terminal ${id}`);
+      socketTerminals.add(id);
       
       const shell = os.platform() === 'win32' ? 'cmd.exe' : 'bash';
       
@@ -52,13 +63,12 @@ async function startServer() {
           console.log(`Terminal ${id} exited with code ${exitCode}`);
           socket.emit(`terminal-exit-${id}`, { exitCode, signal });
           delete terminals[id];
+          socketTerminals.delete(id);
         });
-        
-        // initial prompt
-        socket.emit(`terminal-data-${id}`, `\r\nConnected to real PTY terminal (${id})\r\n`);
       } catch (err) {
         console.error("Failed to spawn process", err);
         socket.emit(`terminal-data-${id}`, `\r\nError starting terminal: ${String(err)}\r\n`);
+        socketTerminals.delete(id);
       }
     });
 
@@ -88,11 +98,25 @@ async function startServer() {
       if (ptyProcess) {
         ptyProcess.kill();
         delete terminals[id];
+        socketTerminals.delete(id);
       }
     });
 
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: ${socket.id}`);
+      // Kill all terminals owned by this socket
+      for (const id of socketTerminals) {
+        const ptyProcess = terminals[id];
+        if (ptyProcess) {
+          try {
+            ptyProcess.kill();
+          } catch (e) {
+            // Process may already be dead
+          }
+          delete terminals[id];
+        }
+      }
+      socketTerminals.clear();
     });
   });
 

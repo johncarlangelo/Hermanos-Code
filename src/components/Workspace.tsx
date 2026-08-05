@@ -1,5 +1,4 @@
 import React from 'react';
-import { AnimatePresence } from 'motion/react';
 import { useStore } from '../store';
 import { TabBar } from './TabBar';
 import { StatusBar } from './StatusBar';
@@ -11,21 +10,10 @@ export const Workspace: React.FC = () => {
   const tabs = useStore(s => s.tabs);
   const activeTab = useStore(s => s.activeTab);
   const layoutMode = useStore(s => s.layoutMode);
-  const openTab = useStore(s => s.openTab);
-  const nodes = useStore(s => s.nodes);
+  const createSession = useStore(s => s.createSession);
 
   const handleCreateSession = () => {
-    // Find first unopened leaf node
-    const allLeafs: string[] = [];
-    const walk = (list: typeof nodes) => {
-      for (const n of list) {
-        if (!n.children || n.children.length === 0) allLeafs.push(n.id);
-        if (n.children) walk(n.children);
-      }
-    };
-    walk(nodes);
-    const unopened = allLeafs.find(id => !tabs.some(t => t.id === id));
-    if (unopened) openTab(unopened);
+    createSession();
   };
 
   // ─── Resize Handle ───
@@ -118,16 +106,32 @@ export const Workspace: React.FC = () => {
 
   // ─── Tab Layout ───
   const renderTabLayout = () => {
-    if (!activeTab || tabs.length === 0) {
+    if (tabs.length === 0) {
       return <EmptyState onCreateSession={handleCreateSession} />;
     }
 
+    // VS Code-style: render ALL terminals at full size, hide inactive ones
+    // with visibility:hidden (preserves container dimensions so xterm never
+    // resizes to 0 columns). Active terminal sits on top via z-index.
     return (
-      <AnimatePresence mode="wait">
-        <div key={activeTab} className="h-full w-full p-1">
-          <TerminalPane id={activeTab} showHeader={false} />
-        </div>
-      </AnimatePresence>
+      <>
+        {tabs.map(tab => {
+          const isVisible = tab.id === activeTab;
+          return (
+            <div
+              key={tab.id}
+              className="h-full w-full p-1 absolute inset-0"
+              style={{
+                visibility: isVisible ? 'visible' : 'hidden',
+                zIndex: isVisible ? 1 : 0,
+                pointerEvents: isVisible ? 'auto' : 'none',
+              }}
+            >
+              <TerminalPane id={tab.id} showHeader={false} />
+            </div>
+          );
+        })}
+      </>
     );
   };
 

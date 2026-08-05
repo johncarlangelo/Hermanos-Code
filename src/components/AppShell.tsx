@@ -1,9 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
+import { useStore } from '../store';
+import { ConfirmModal } from './ConfirmModal';
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const tabs = useStore(s => s.tabs);
+
+  // ─── Prevent accidental browser close when sessions are active ───
+  useEffect(() => {
+    if (tabs.length === 0) return;
+
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Modern browsers show a generic message; returnValue is required for legacy
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [tabs.length]);
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[var(--color-void)]">
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal />
+
       {/* ─── Animated Gradient Mesh Background ─── */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         {/* Top-right cyan glow */}
