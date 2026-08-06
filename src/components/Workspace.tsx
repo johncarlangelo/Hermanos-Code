@@ -1,10 +1,46 @@
-import React from 'react';
+import React, { useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { TabBar } from './TabBar';
 import { StatusBar } from './StatusBar';
 import { TerminalPane } from './TerminalPane';
 import { EmptyState } from './EmptyState';
 import { Group, Panel, Separator } from 'react-resizable-panels';
+
+// ─── Persistent Terminal Slot Portal ───
+// Portals a persistent TerminalPane instance into the active layout slot (tab slot vs split slot)
+// so the component instance, xterm.js instance, WebSocket, and PTY process never unmount when toggling views.
+const PersistentTerminalSlot: React.FC<{ id: string }> = ({ id }) => {
+  const layoutMode = useStore(s => s.layoutMode);
+  const targetId = layoutMode === 'tabs' ? `tab-slot-${id}` : `split-slot-${id}`;
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    let animationFrameId: number;
+
+    const updateContainer = () => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        setContainer(el);
+      } else {
+        animationFrameId = requestAnimationFrame(updateContainer);
+      }
+    };
+
+    updateContainer();
+
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+  }, [targetId, layoutMode, id]);
+
+  if (!container) return null;
+
+  return createPortal(
+    <TerminalPane id={id} showHeader={layoutMode === 'split'} />,
+    container
+  );
+};
 
 export const Workspace: React.FC = () => {
   const tabs = useStore(s => s.tabs);
@@ -33,7 +69,7 @@ export const Workspace: React.FC = () => {
     if (tabs.length === 1) {
       return (
         <div className="h-full w-full p-1">
-          <TerminalPane id={tabs[0].id} />
+          <div id={`split-slot-${tabs[0].id}`} className="h-full w-full relative" />
         </div>
       );
     }
@@ -42,11 +78,11 @@ export const Workspace: React.FC = () => {
       return (
         <Group orientation="horizontal" className="h-full w-full">
           <Panel className="p-1">
-            <TerminalPane id={tabs[0].id} />
+            <div id={`split-slot-${tabs[0].id}`} className="h-full w-full relative" />
           </Panel>
           {resizeHandle('rx1', 'horizontal')}
           <Panel className="p-1">
-            <TerminalPane id={tabs[1].id} />
+            <div id={`split-slot-${tabs[1].id}`} className="h-full w-full relative" />
           </Panel>
         </Group>
       );
@@ -56,17 +92,17 @@ export const Workspace: React.FC = () => {
       return (
         <Group orientation="horizontal" className="h-full w-full">
           <Panel className="p-1">
-            <TerminalPane id={tabs[0].id} />
+            <div id={`split-slot-${tabs[0].id}`} className="h-full w-full relative" />
           </Panel>
           {resizeHandle('rx1', 'horizontal')}
           <Panel>
             <Group orientation="vertical" className="h-full w-full">
               <Panel className="p-1">
-                <TerminalPane id={tabs[1].id} />
+                <div id={`split-slot-${tabs[1].id}`} className="h-full w-full relative" />
               </Panel>
               {resizeHandle('ry1', 'vertical')}
               <Panel className="p-1">
-                <TerminalPane id={tabs[2].id} />
+                <div id={`split-slot-${tabs[2].id}`} className="h-full w-full relative" />
               </Panel>
             </Group>
           </Panel>
@@ -80,11 +116,11 @@ export const Workspace: React.FC = () => {
         <Panel>
           <Group orientation="vertical" className="h-full w-full">
             <Panel className="p-1">
-              <TerminalPane id={tabs[0].id} />
+              <div id={`split-slot-${tabs[0].id}`} className="h-full w-full relative" />
             </Panel>
             {resizeHandle('ry1', 'vertical')}
             <Panel className="p-1">
-              <TerminalPane id={tabs[2]?.id || tabs[0].id} />
+              <div id={`split-slot-${tabs[2]?.id || tabs[0].id}`} className="h-full w-full relative" />
             </Panel>
           </Group>
         </Panel>
@@ -92,11 +128,15 @@ export const Workspace: React.FC = () => {
         <Panel>
           <Group orientation="vertical" className="h-full w-full">
             <Panel className="p-1">
-              <TerminalPane id={tabs[1].id} />
+              <div id={`split-slot-${tabs[1].id}`} className="h-full w-full relative" />
             </Panel>
             {resizeHandle('ry2', 'vertical')}
             <Panel className="p-1">
-              {tabs[3] ? <TerminalPane id={tabs[3].id} /> : <EmptyState onCreateSession={handleCreateSession} />}
+              {tabs[3] ? (
+                <div id={`split-slot-${tabs[3].id}`} className="h-full w-full relative" />
+              ) : (
+                <EmptyState onCreateSession={handleCreateSession} />
+              )}
             </Panel>
           </Group>
         </Panel>
@@ -110,7 +150,7 @@ export const Workspace: React.FC = () => {
       return <EmptyState onCreateSession={handleCreateSession} />;
     }
 
-    // VS Code-style: render ALL terminals at full size, hide inactive ones
+    // VS Code-style: render ALL terminal slots at full size, hide inactive ones
     // with visibility:hidden (preserves container dimensions so xterm never
     // resizes to 0 columns). Active terminal sits on top via z-index.
     return (
@@ -127,7 +167,7 @@ export const Workspace: React.FC = () => {
                 pointerEvents: isVisible ? 'auto' : 'none',
               }}
             >
-              <TerminalPane id={tab.id} showHeader={false} />
+              <div id={`tab-slot-${tab.id}`} className="h-full w-full relative" />
             </div>
           );
         })}
@@ -144,6 +184,11 @@ export const Workspace: React.FC = () => {
       <div className="flex-1 min-h-0 w-full relative">
         {layoutMode === 'tabs' ? renderTabLayout() : renderSplitLayout()}
       </div>
+
+      {/* Persistent Terminal Instances — Portaled into active slots */}
+      {tabs.map(tab => (
+        <PersistentTerminalSlot key={tab.id} id={tab.id} />
+      ))}
 
       {/* Status Bar */}
       <StatusBar />

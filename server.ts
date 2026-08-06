@@ -5,6 +5,7 @@ import { createServer as createHttpServer } from 'http';
 import { Server } from 'socket.io';
 import * as pty from 'node-pty';
 import os from 'os';
+import fs from 'fs';
 
 async function startServer() {
   const app = express();
@@ -31,7 +32,7 @@ async function startServer() {
     const socketTerminals = new Set<string>();
 
     socket.on('create-terminal', (data) => {
-      const { id, cols = 80, rows = 24 } = data;
+      const { id, cols = 80, rows = 24, cwd: requestedCwd } = data;
       
       // Prevent duplicate creation
       if (terminals[id]) {
@@ -39,17 +40,19 @@ async function startServer() {
         return;
       }
 
-      console.log(`Creating terminal ${id}`);
+      console.log(`Creating terminal ${id}${requestedCwd ? ` in ${requestedCwd}` : ''}`);
       socketTerminals.add(id);
       
       const shell = os.platform() === 'win32' ? 'cmd.exe' : 'bash';
+      const defaultCwd = process.env.HOME || process.env.USERPROFILE || process.cwd();
+      const targetCwd = (requestedCwd && fs.existsSync(requestedCwd)) ? requestedCwd : defaultCwd;
       
       try {
         const ptyProcess = pty.spawn(shell, [], {
           name: 'xterm-color',
           cols: cols || 80,
           rows: rows || 24,
-          cwd: process.env.HOME || process.env.USERPROFILE || process.cwd(),
+          cwd: targetCwd,
           env: process.env as Record<string, string>
         });
 

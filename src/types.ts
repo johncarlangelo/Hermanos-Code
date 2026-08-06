@@ -10,6 +10,10 @@ export interface TerminalNode {
   isExpanded?: boolean;
   description?: string;
   lastActivity?: number; // timestamp
+  repoPath?: string;     // path to git repository or working directory
+  branch?: string;       // git branch (e.g. 'main', 'feature/auth')
+  isRepoGroup?: boolean; // flags node as a repo workspace group
+  cwd?: string;          // working directory for terminal sessions
 }
 
 // ─── Tab Item ───

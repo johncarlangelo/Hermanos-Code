@@ -110,7 +110,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id, showHeader = tru
       socket.emit('create-terminal', {
         id,
         cols: term.cols,
-        rows: term.rows
+        rows: term.rows,
+        cwd: node?.cwd || node?.repoPath,
       });
     }, 50);
 
@@ -192,13 +193,14 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id, showHeader = tru
     };
   }, [id]);
 
-  // ─── VS Code-style refit on tab switch ───
-  // When this terminal becomes the active tab, refit to the container's
-  // current dimensions and refresh all visible rows to fix any rendering
-  // artifacts from being hidden.
+  const layoutMode = useStore(s => s.layoutMode);
+
+  // ─── VS Code-style refit on tab / layout view switch ───
+  // When this terminal becomes active or layout mode switches (tab vs split),
+  // refit to container dimensions and refresh all visible rows to preserve text.
   useEffect(() => {
-    if (!isFocused) return;
-    // Small delay to ensure the container is fully visible and has dimensions
+    if (!isFocused && layoutMode === 'tabs') return;
+    // Small delay to ensure the container is fully mounted in slot and has dimensions
     const timer = setTimeout(() => {
       if (fitAddonRef.current && xtermRef.current && mountedRef.current) {
         fitAddonRef.current.fit();
@@ -208,9 +210,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ id, showHeader = tru
         // Sync the new dimensions with the PTY backend
         socket.emit('resize-terminal', { id, cols, rows });
       }
-    }, 30);
+    }, 40);
     return () => clearTimeout(timer);
-  }, [isFocused, id]);
+  }, [isFocused, layoutMode, id]);
 
   // Handle close — kill terminal + remove session
   const handleClose = async () => {
