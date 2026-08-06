@@ -14,9 +14,10 @@ interface StoreActions {
   renameNode: (id: string, name: string) => void;
 
   // Sessions (dynamic creation)
-  createSession: (name?: string) => string; // returns the new session ID
-  createWorkspaceGroup: (name: string) => string; // returns the new group ID
+  createSession: (name?: string, targetGroupId?: string, cwd?: string) => string; // returns the new session ID
+  createWorkspaceGroup: (name: string, repoPath?: string, branch?: string) => string; // returns the new group ID
   deleteSession: (id: string) => void;
+  deleteWorkspaceGroup: (id: string) => void;
 
   // Tabs
   openTab: (id: string) => void;
@@ -160,14 +161,14 @@ export const useStore = create<Store>((set, get) => ({
   })),
 
   // ─── Dynamic Session Creation ───
-  createSession: (name?: string) => {
+  createSession: (name?: string, targetGroupId?: string, cwd?: string) => {
     const state = get();
     const sessionId = generateId('session');
     const sessionNumber = countLeafNodes(state.nodes) + 1;
     const sessionName = name || `Session ${sessionNumber}`;
 
-    // Find an existing workspace group to add to, or create a default one
-    let groupId = findFirstGroup(state.nodes);
+    // Use specified targetGroupId, or fallback to first group, or create default group
+    let groupId = targetGroupId || findFirstGroup(state.nodes);
 
     if (!groupId) {
       // No groups exist — create a default workspace group first
@@ -182,12 +183,17 @@ export const useStore = create<Store>((set, get) => ({
       set(s => ({ nodes: [...s.nodes, group] }));
     }
 
+    // Find parent group to inherit repoPath/cwd if not provided
+    const parentNode = findNodeName(state.nodes, groupId) ? state.nodes.find(n => n.id === groupId) : null;
+    const effectiveCwd = cwd || parentNode?.cwd || parentNode?.repoPath;
+
     // Create the session node
     const sessionNode: TerminalNode = {
       id: sessionId,
       name: sessionName,
       status: 'idle',
       lastActivity: Date.now(),
+      cwd: effectiveCwd,
     };
 
     // Add to tree, open tab, and set active
@@ -203,7 +209,7 @@ export const useStore = create<Store>((set, get) => ({
     return sessionId;
   },
 
-  createWorkspaceGroup: (name: string) => {
+  createWorkspaceGroup: (name: string, repoPath?: string, branch?: string) => {
     const groupId = generateId('workspace');
     const group: TerminalNode = {
       id: groupId,
@@ -211,9 +217,37 @@ export const useStore = create<Store>((set, get) => ({
       status: 'idle',
       isExpanded: true,
       children: [],
+      isRepoGroup: true,
+      repoPath: repoPath || undefined,
+      branch: branch || 'main',
     };
     set(s => ({ nodes: [...s.nodes, group] }));
     return groupId;
+  },
+
+  deleteWorkspaceGroup: (id) => {
+    const state = get();
+    // Find all child session IDs under this group to clean up tabs
+    const groupNode = state.nodes.find(n => n.id === id);
+    const childIds = new Set<string>();
+    const collectIds = (n: TerminalNode) => {
+      childIds.add(n.id);
+      if (n.children) n.children.forEach(collectIds);
+    };
+    if (groupNode) collectIds(groupNode);
+
+    const newTabs = state.tabs.filter(t => !childIds.has(t.id));
+    let newActiveTab = state.activeTab;
+
+    if (state.activeTab && childIds.has(state.activeTab)) {
+      newActiveTab = newTabs[newTabs.length - 1]?.id || null;
+    }
+
+    set({
+      nodes: removeNodeFromTree(state.nodes, id),
+      tabs: newTabs.map(t => ({ ...t, isActive: t.id === newActiveTab })),
+      activeTab: newActiveTab,
+    });
   },
 
   deleteSession: (id) => {
